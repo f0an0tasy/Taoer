@@ -1,0 +1,28 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/LoginPage",
+    "pages/RegisterPage",
+    "pages/SettingPage",
+    "pages/ServerConfigPage",
+    "pages/ChangeUsernamePage",
+    "pages/ChangePasswordPage",
+    "pages/MainPage",
+    "pages/ProductDetail",
+    "pages/CartView",
+    "pages/OrderConfirmPage",
+    "pages/OrderListPage",
+    "pages/SellerOrderListPage",
+    "pages/DeliveryPage",
+    "pages/FavoriteListPage",
+    "pages/MyPublishPage",
+    "pages/PublishPage",
+    "pages/Home",
+    "pages/CommentPage",
+    "pages/AddressListPage",
+    "pages/AddressEditPage",
+    "pages/ApplyRefundPage",
+    "pages/SellerRefundListPage",
+    "pages/RefundDetailPage"
+  ]
+}
