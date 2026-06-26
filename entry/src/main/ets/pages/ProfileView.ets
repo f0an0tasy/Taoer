@@ -162,112 +162,118 @@ export struct ProfileView {
   }
 
   build() {
-    Column() {
-      // 头部信息
+    // 【修改】使用 Scroll 组件包裹整个内容，支持垂直滚动
+    Scroll() {
       Column() {
-        // 头像显示：优先显示用户头像，否则显示默认头像
-        Image(this.getAvatarSource())
-          .width(70)
-          .height(70)
-          .borderRadius(35)
-          .backgroundColor('#fff')
-          .objectFit(ImageFit.Cover)
-          .onClick(() => this.handleAvatarClick())
-        // 用户名（点击可修改）
-        Text(this.user.username)
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .margin({ top: 10 })
-          .fontColor('#fff')
-          .onClick(() => {
-            router.pushUrl({ url: 'pages/ChangeUsernamePage' });
+        // 头部信息
+        Column() {
+          // 头像显示：优先显示用户头像，否则显示默认头像
+          Image(this.getAvatarSource())
+            .width(70)
+            .height(70)
+            .borderRadius(35)
+            .backgroundColor('#fff')
+            .objectFit(ImageFit.Cover)
+            .onClick(() => this.handleAvatarClick())
+          // 用户名（点击可修改）
+          Text(this.user.username)
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .margin({ top: 10 })
+            .fontColor('#fff')
+            .onClick(() => {
+              router.pushUrl({ url: 'pages/ChangeUsernamePage' });
+            })
+          // 校园卡号显示
+          Text('校园卡号：' + (this.user.studentId || '未绑定'))
+            .fontSize(14)
+            .fontColor('#eee')
+            .margin({ top: 5 })
+          // ID 显示
+          Text('ID: ' + (this.user.id || '0000'))
+            .fontSize(12)
+            .fontColor('#eee')
+            .margin({ top: 5 })
+        }
+        .width('100%')
+        .height(200)
+        .backgroundColor('#3366FF')
+        .justifyContent(FlexAlign.Center)
+
+        // 菜单
+        Column() {
+          this.MenuItem('我的订单', 'app.media.ic_order', () => {
+            router.pushUrl({ url: 'pages/OrderListPage' });
           })
-        // 校园卡号显示
-        Text('校园卡号：' + (this.user.studentId || '未绑定'))
-          .fontSize(14)
-          .fontColor('#eee')
-          .margin({ top: 5 })
-        // ID 显示
-        Text('ID: ' + (this.user.id || '0000'))
-          .fontSize(12)
-          .fontColor('#eee')
-          .margin({ top: 5 })
+          Divider().color('#f0f0f0')
+          // 我的卖出菜单项
+          this.MenuItem('我的卖出', 'app.media.ic_order', () => {
+            router.pushUrl({ url: 'pages/SellerOrderListPage' });
+          })
+          Divider().color('#f0f0f0')
+          // 我的地址菜单项
+          this.MenuItem('我的地址', 'app.media.ic_order', () => {
+            router.pushUrl({ url: 'pages/AddressListPage' });
+          })
+          Divider().color('#f0f0f0')
+          // 我的收藏菜单项
+          this.MenuItem('我的收藏', 'app.media.ic_order', () => {
+            router.pushUrl({ url: 'pages/FavoriteListPage' });
+          })
+          Divider().color('#f0f0f0')
+          // 修改 MenuItem 调用：
+          this.MenuItem('我的发布', 'app.media.ic_pub', () => {
+            router.pushUrl({ url: 'pages/MyPublishPage' }); // 跳转到我们刚写的页面
+          })
+          Divider().color('#f0f0f0')
+          // 修改 MenuItem 调用：
+          this.MenuItem('AI建议', 'app.media.ic_pub', () => {
+            router.pushUrl({ url: 'pages/Home' }); // 跳转到我们刚写的页面
+          })
+          Divider().color('#f0f0f0')
+          this.MenuItem('设置', 'app.media.ic_setting', () => {
+            router.pushUrl({ url: 'pages/SettingPage' });
+          })
+
+          Button('退出登录')
+            .width('90%')
+            .height(45)
+            .margin({ top: 50 })
+            .backgroundColor('#FF4D4F')
+            .onClick(() => {
+              // 添加确认弹窗，防止误触
+              AlertDialog.show({
+                title: '提示',
+                message: '确定要退出登录吗？',
+                primaryButton: {
+                  value: '取消',
+                  action: () => {
+                    // 点击取消，不做任何操作
+                  }
+                },
+                secondaryButton: {
+                  value: '确定',
+                  action: () => {
+                    // 点击确定，执行退出登录
+                    this.handleLogout();
+                  }
+                }
+              });
+            })
+        }
+        .width('100%')
+        .padding({ top: 20, bottom: 80 }) // 【修改】增加底部 padding，避免被底部 Tabs 导航栏遮挡
+        .backgroundColor('#fff')
+        .borderRadius({ topLeft: 20, topRight: 20 })
+        .margin({ top: -20 }) // 上浮效果
       }
       .width('100%')
-      .height(200)
       .backgroundColor('#3366FF')
-      .justifyContent(FlexAlign.Center)
-
-      // 菜单
-      Column() {
-        this.MenuItem('我的订单', 'app.media.ic_order', () => {
-          router.pushUrl({ url: 'pages/OrderListPage' });
-        })
-        Divider().color('#f0f0f0')
-        // 我的卖出菜单项
-        this.MenuItem('我的卖出', 'app.media.ic_order', () => {
-          router.pushUrl({ url: 'pages/SellerOrderListPage' });
-        })
-        Divider().color('#f0f0f0')
-        // 我的地址菜单项
-        this.MenuItem('我的地址', 'app.media.ic_order', () => {
-          router.pushUrl({ url: 'pages/AddressListPage' });
-        })
-        Divider().color('#f0f0f0')
-        // 我的收藏菜单项
-        this.MenuItem('我的收藏', 'app.media.ic_order', () => {
-          router.pushUrl({ url: 'pages/FavoriteListPage' });
-        })
-        Divider().color('#f0f0f0')
-        // 修改 MenuItem 调用：
-        this.MenuItem('我的发布', 'app.media.ic_pub', () => {
-          router.pushUrl({ url: 'pages/MyPublishPage' }); // 跳转到我们刚写的页面
-        })
-        Divider().color('#f0f0f0')
-        // 修改 MenuItem 调用：
-        this.MenuItem('AI建议', 'app.media.ic_pub', () => {
-          router.pushUrl({ url: 'pages/Home' }); // 跳转到我们刚写的页面
-        })
-        Divider().color('#f0f0f0')
-        this.MenuItem('设置', 'app.media.ic_setting', () => {
-          router.pushUrl({ url: 'pages/SettingPage' });
-        })
-
-        Button('退出登录')
-          .width('90%')
-          .height(45)
-          .margin({ top: 50 })
-          .backgroundColor('#FF4D4F')
-          .onClick(() => {
-            // 添加确认弹窗，防止误触
-            AlertDialog.show({
-              title: '提示',
-              message: '确定要退出登录吗？',
-              primaryButton: {
-                value: '取消',
-                action: () => {
-                  // 点击取消，不做任何操作
-                }
-              },
-              secondaryButton: {
-                value: '确定',
-                action: () => {
-                  // 点击确定，执行退出登录
-                  this.handleLogout();
-                }
-              }
-            });
-          })
-      }
-      .width('100%')
-      .padding({ top: 20 })
-      .layoutWeight(1)
-      .backgroundColor('#fff')
-      .borderRadius({ topLeft: 20, topRight: 20 })
-      .margin({ top: -20 }) // 上浮效果
     }
+    .width('100%')
     .height('100%')
-    .backgroundColor('#3366FF')
+    .scrollBar(BarState.Off) // 【修改】隐藏滚动条，保持界面简洁
+    .edgeEffect(EdgeEffect.Spring) // 【修改】添加弹性边缘效果，提升用户体验
   }
 
   @Builder MenuItem(title: string, icon: string, action: () => void) {

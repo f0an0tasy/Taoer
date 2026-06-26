@@ -33,7 +33,7 @@ struct SettingPage {
         
         // 其他设置项可以在这里添加
         this.MenuItem('关于我们', 'app.media.ic_info', () => {
-          promptAction.showToast({ message: '关于我们功能开发中' });
+          router.pushUrl({ url: 'pages/AboutPage' });
         })
         Divider().color('#f0f0f0')
         

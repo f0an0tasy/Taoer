@@ -99,6 +99,7 @@ export interface Refund {
   applyTime: number;
   processTime?: number;
   reply?: string;
+  preRefundStatus?: string; // 退款前的订单状态，用于退款拒绝后恢复
 }
 
 // 评价结果接口，包含成功状态和消息

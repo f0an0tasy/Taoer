@@ -168,10 +168,14 @@ export class StreamAIUtil {
       'Authorization': `Bearer ${ZHIPU_API_KEY}`
     };
 
+    const systemMessage: Message = {
+      role: 'system',
+      content: '请勿使用表格（包括Markdown表格、ASCII表格等），回答内容请用纯文本、列表或段落组织。'
+    };
     let userMessage: Message = { role: 'user', content: content };
     let body: Body = {
       model: ZHIPU_MODEL,
-      messages: [userMessage],
+      messages: [systemMessage, userMessage],
       stream: true,
       temperature: 0.7
     };

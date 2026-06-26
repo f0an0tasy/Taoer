@@ -114,7 +114,8 @@ struct OrderListPage {
         price: order.price,
         specs: order.specs,
         sellerId: order.sellerId,
-        userId: order.userId
+        userId: order.userId,
+        orderStatus: order.status // 传递订单状态
       }
     });
   }

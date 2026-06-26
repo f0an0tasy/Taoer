@@ -3,6 +3,7 @@ import { dbManager, User } from '../db/DatabaseManager';
 import { promptAction } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { relationalStore } from '@kit.ArkData';
+// [新增] 导入图片选择和上传所需模块
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { httpService } from '../utils/HttpService';
 
@@ -15,10 +16,11 @@ struct RegisterPage {
   @State password: string = '';
   @State confirmPassword: string = '';
   @State studentId: string = '';              // 校园卡号
-  @State cardImageUri: string = '';           // 校园卡图片URI（用于预览）
-  @State uploadedCardImageUrl: string = '';   // 服务器返回的图片 URL
   @State isLoading: boolean = false;
-  @State isUploading: boolean = false;        // 图片上传状态
+  // [新增] 图片上传相关状态变量
+  @State cardImageUri: string = '';           // 用于预览的图片 URI（如 file://media/...）
+  @State uploadedCardImageUrl: string = '';   // 上传成功后服务器返回的图片 URL
+  @State isUploading: boolean = false;        // 标记上传中状态（防止重复提交）
 
   build() {
     Stack() {
@@ -164,53 +166,79 @@ struct RegisterPage {
                 this.studentId = numericValue.substring(0, 10);
               })
 
-            // 校园卡图片上传区域
+            // [新增] 校园卡图片上传区域
             Column() {
               if (this.cardImageUri) {
-                // 已选择图片，显示缩略图
-                Column() {
+                // 显示缩略图和删除按钮
+                Stack({ alignContent: Alignment.TopEnd }) {
                   Image(this.cardImageUri)
-                    .width(120)
+                    .width(80)
                     .height(80)
-                    .objectFit(ImageFit.Cover)
                     .borderRadius(8)
-                  
-                  Text('点击更换图片')
-                    .fontSize(12)
-                    .fontColor('#666666')
-                    .margin({ top: 6 })
+                    .objectFit(ImageFit.Cover)
+                    .shadow({ radius: 4, color: 'rgba(0, 0, 0, 0.2)', offsetX: 0, offsetY: 2 })
+
+                  // 删除按钮
+                  Button({ type: ButtonType.Circle }) {
+                    Text('×')
+                      .fontSize(16)
+                      .fontColor('#FFFFFF')
+                      .fontWeight(FontWeight.Bold)
+                  }
+                  .width(24)
+                  .height(24)
+                  .backgroundColor('rgba(0, 0, 0, 0.6)')
+                  .margin({ top: -8, right: -8 })
+                  .onClick(() => this.handleDeleteCardImage())
                 }
-                .width('85%')
-                .height(120)
-                .justifyContent(FlexAlign.Center)
-                .alignItems(HorizontalAlign.Center)
-                .backgroundColor('rgba(255, 255, 255, 0.95)')
-                .borderRadius(16)
-                .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+                .width(80)
+                .height(80)
+                .margin({ top: 8 })
               } else {
-                // 未选择图片，显示上传提示
-                Column() {
-                  Text('+')
-                    .fontSize(36)
-                    .fontColor('#4A90E2')
-                    .fontWeight(FontWeight.Bold)
-                  
+                // 上传提示区域
+                Row() {
+                  Text('📷')
+                    .fontSize(20)
                   Text('点击上传校园卡图片')
                     .fontSize(14)
                     .fontColor('#666666')
-                    .margin({ top: 4 })
+                    .margin({ left: 8 })
                 }
                 .width('85%')
-                .height(120)
+                .height(80)
                 .justifyContent(FlexAlign.Center)
-                .alignItems(HorizontalAlign.Center)
                 .backgroundColor('rgba(255, 255, 255, 0.95)')
-                .borderRadius(16)
+                .borderRadius(8)
                 .border({ width: 1, color: '#E0E0E0', style: BorderStyle.Dashed })
-                .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+                .shadow({ radius: 4, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 1 })
+                .onClick(() => this.handleSelectCardImage())
+              }
+
+              // 上传中进度提示
+              if (this.isUploading) {
+                Row() {
+                  LoadingProgress()
+                    .width(20)
+                    .height(20)
+                    .color('#4A90E2')
+                  Text('上传中...')
+                    .fontSize(12)
+                    .fontColor('#999999')
+                    .margin({ left: 8 })
+                }
+                .margin({ top: 8 })
+              }
+
+              // 上传成功提示
+              if (this.uploadedCardImageUrl && !this.isUploading) {
+                Text('✓ 图片已上传')
+                  .fontSize(12)
+                  .fontColor('#52C41A')
+                  .margin({ top: 4 })
               }
             }
-            .onClick(() => this.handleSelectCardImage())
+            .width('85%')
+            .alignItems(HorizontalAlign.Center)
 
             // 注册按钮
             Button('注册')
@@ -228,8 +256,8 @@ struct RegisterPage {
               })
               .borderRadius(24)
               .shadow({ radius: 12, color: 'rgba(51, 102, 255, 0.4)', offsetX: 0, offsetY: 4 })
-              .enabled(!this.isLoading)
-              .opacity(this.isLoading ? 0.5 : 1)
+              .enabled(!this.isLoading && !this.isUploading)
+              .opacity((this.isLoading || this.isUploading) ? 0.5 : 1)
               .onClick(() => this.handleRegister())
               .margin({ top: 8 })
 
@@ -268,65 +296,88 @@ struct RegisterPage {
   }
 
   /**
-   * 选择校园卡图片并上传到服务器
+   * 校验学号是否在允许范围内
+   * 允许范围：8209230301-8209230333 和 8209230401-8209230433
    */
-  private async handleSelectCardImage() {
-    if (this.isUploading) return;
+  private isValidStudentId(studentId: string): boolean {
+    // 先校验是否为10位数字
+    const studentIdRegex = /^\d{10}$/;
+    if (!studentIdRegex.test(studentId)) {
+      return false;
+    }
     
+    // 转为数字并判断是否在允许范围内
+    const num = parseInt(studentId, 10);
+    const inRange1 = num >= 8209230301 && num <= 8209230333;
+    const inRange2 = num >= 8209230401 && num <= 8209230433;
+    
+    return inRange1 || inRange2;
+  }
+
+  // [新增] 选择校园卡图片
+  private async handleSelectCardImage() {
+    if (this.isUploading) {
+      return; // 防止重复点击
+    }
+
     try {
-      hilog.info(DOMAIN, 'Register', 'Starting card image selection');
-      
       // 创建图片选择器
       const photoPicker = new photoAccessHelper.PhotoViewPicker();
-      const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
-      photoSelectOptions.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
-      photoSelectOptions.maxSelectNumber = 1;
-
-      // 选择图片
+      
+      // 选择单张图片
+      const photoSelectOptions: photoAccessHelper.PhotoSelectOptions = {
+        MIMEType: photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE,
+        maxSelectNumber: 1
+      };
+      
       const photoSelectResult = await photoPicker.select(photoSelectOptions);
       
-      if (!photoSelectResult.photoUris || photoSelectResult.photoUris.length === 0) {
-        hilog.info(DOMAIN, 'Register', 'No photo selected');
-        return;
+      if (photoSelectResult.photoUris && photoSelectResult.photoUris.length > 0) {
+        const uri = photoSelectResult.photoUris[0];
+        hilog.info(DOMAIN, 'RegisterPage', 'Selected image URI: %{public}s', uri);
+        
+        // 显示缩略图
+        this.cardImageUri = uri;
+        
+        // 开始上传
+        await this.uploadCardImage(uri);
       }
+    } catch (error) {
+      hilog.error(DOMAIN, 'RegisterPage', 'Failed to select image: %{public}s', JSON.stringify(error));
+      promptAction.showToast({ message: '选择图片失败' });
+    }
+  }
 
-      // 保存选择的图片 URI 用于预览
-      const selectedUri = photoSelectResult.photoUris[0];
-      this.cardImageUri = selectedUri;
+  // [新增] 上传校园卡图片
+  private async uploadCardImage(uri: string) {
+    this.isUploading = true;
+    
+    try {
+      const response = await httpService.uploadFile('/api/upload/card', uri, 'cardImage');
       
-      hilog.info(DOMAIN, 'Register', 'Card image URI saved: %{public}s', selectedUri);
-      
-      // 上传图片到服务器
-      this.isUploading = true;
-      promptAction.showToast({ message: '正在上传校园卡图片...' });
-      
-      const uploadResult = await httpService.uploadFile('/api/upload/card', selectedUri, 'cardImage');
-      
-      // 输出完整的上传结果用于调试
-      hilog.info(DOMAIN, 'Register', 'Upload result: success=%{public}s, data=%{public}s, message=%{public}s',
-        String(uploadResult.success), uploadResult.data || 'null', uploadResult.message || 'null');
-      
-      if (uploadResult.success && uploadResult.data) {
-        this.uploadedCardImageUrl = uploadResult.data;
-        hilog.info(DOMAIN, 'Register', 'Card image uploaded successfully, URL: %{public}s', this.uploadedCardImageUrl);
-        promptAction.showToast({ message: '校园卡图片已上传' });
+      if (response.success && response.data) {
+        this.uploadedCardImageUrl = response.data;
+        hilog.info(DOMAIN, 'RegisterPage', 'Image uploaded successfully: %{public}s', response.data);
+        promptAction.showToast({ message: '图片上传成功' });
       } else {
-        // 详细的错误信息
-        const errorMsg = uploadResult.message || '图片上传失败，请稍后重试';
-        hilog.error(DOMAIN, 'Register', 'Upload failed - success: %{public}s, message: %{public}s',
-          String(uploadResult.success), errorMsg);
-        hilog.error(DOMAIN, 'Register', 'Full upload result: %{public}s', JSON.stringify(uploadResult));
-        promptAction.showToast({ message: errorMsg });
-        this.cardImageUri = '';
+        hilog.error(DOMAIN, 'RegisterPage', 'Image upload failed: %{public}s', response.message || 'unknown');
+        promptAction.showToast({ message: response.message || '图片上传失败' });
         this.uploadedCardImageUrl = '';
       }
-
     } catch (error) {
-      hilog.error(DOMAIN, 'Register', 'Failed to select/upload card image: %{public}s', JSON.stringify(error));
-      promptAction.showToast({ message: '图片处理失败，请重试' });
+      hilog.error(DOMAIN, 'RegisterPage', 'Image upload error: %{public}s', JSON.stringify(error));
+      promptAction.showToast({ message: '图片上传失败' });
+      this.uploadedCardImageUrl = '';
     } finally {
       this.isUploading = false;
     }
+  }
+
+  // [新增] 删除已选择的图片
+  private handleDeleteCardImage() {
+    this.cardImageUri = '';
+    this.uploadedCardImageUrl = '';
+    hilog.info(DOMAIN, 'RegisterPage', 'Card image deleted');
   }
 
   private async handleRegister() {
@@ -352,13 +403,15 @@ struct RegisterPage {
       return;
     }
 
-    const studentIdRegex = /^\d{10}$/;
-    if (!studentIdRegex.test(this.studentId)) {
-      promptAction.showToast({ message: '校园卡号必须为10位数字' });
+    // 校验学号是否在允许范围内
+    if (!this.isValidStudentId(this.studentId)) {
+      promptAction.showToast({ 
+        message: '学号不在允许注册的范围内（仅限8209230301-8209230333和8209230401-8209230433）' 
+      });
       return;
     }
 
-    // 校验校园卡图片（必须已上传到服务器）
+    // [新增] 校验校园卡图片
     if (!this.uploadedCardImageUrl) {
       promptAction.showToast({ message: '请上传校园卡图片' });
       return;
@@ -373,7 +426,7 @@ struct RegisterPage {
         return;
       }
 
-      // 注册新用户，使用服务器返回的图片 URL
+      // [修改] 注册新用户，使用上传后的图片 URL
       const newUser: User = {
         username: this.username,
         password: this.password,

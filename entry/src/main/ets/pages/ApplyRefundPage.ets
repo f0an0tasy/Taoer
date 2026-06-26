@@ -35,6 +35,7 @@ struct ApplyRefundPage {
   @State specs: string = '';
   @State sellerId: number = 0;
   @State buyerId: number = 0;
+  @State orderStatus: string = ''; // 订单原始状态
   
   // 表单数据
   @State refundType: string = '仅退款';
@@ -59,8 +60,9 @@ struct ApplyRefundPage {
       this.specs = params['specs'] as string || '';
       this.sellerId = params['sellerId'] as number || 0;
       this.buyerId = params['userId'] as number || 0;
+      this.orderStatus = params['orderStatus'] as string || ''; // 获取订单原始状态
       
-      hilog.info(DOMAIN, 'ApplyRefund', 'Order info: orderId=%{public}d, productTitle=%{public}s', this.orderId, this.productTitle);
+      hilog.info(DOMAIN, 'ApplyRefund', 'Order info: orderId=%{public}d, productTitle=%{public}s, orderStatus=%{public}s', this.orderId, this.productTitle, this.orderStatus);
     }
     
     // 验证用户登录状态
@@ -102,7 +104,8 @@ struct ApplyRefundPage {
         description: this.description,
         status: '待处理',
         type: this.refundType,
-        applyTime: Date.now()
+        applyTime: Date.now(),
+        preRefundStatus: this.orderStatus // 保存当前订单状态，用于退款拒绝后恢复
       };
       
       const refundId = await dbManager.applyRefund(refund);

@@ -23,6 +23,7 @@
     "pages/AddressEditPage",
     "pages/ApplyRefundPage",
     "pages/SellerRefundListPage",
-    "pages/RefundDetailPage"
+    "pages/RefundDetailPage",
+    "pages/AboutPage"
   ]
 }

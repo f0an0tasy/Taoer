@@ -275,6 +275,39 @@ struct LoginPage {
       .height('100%')
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
+
+      // 右上角服务器设置入口（放在 Stack 最后，确保最高层级）
+      Row() {
+        Blank()
+        
+        // 设置按钮 - 使用 Button 组件确保点击事件可靠
+        Button('设置')
+          .fontSize(14)
+          .fontColor('#FFFFFF')
+          .fontWeight(FontWeight.Medium)
+          .width(60)              // 增大宽度，确保点击区域足够
+          .height(44)             // 符合 HarmonyOS 最小触摸区域要求（44vp）
+          .borderRadius(22)
+          .backgroundColor('rgba(255, 255, 255, 0.25)')
+          .type(ButtonType.Normal) // 使用 Normal 类型，自定义样式
+          .onClick(() => {
+            // 第一行输出明显日志，确认点击事件触发
+            hilog.info(DOMAIN, 'LoginPage', '========== Settings Button Clicked ==========');
+            
+            router.pushUrl({ url: 'pages/ServerConfigPage' })
+              .then(() => {
+                hilog.info(DOMAIN, 'LoginPage', 'Navigate to ServerConfigPage success');
+              })
+              .catch((err: Error) => {
+                hilog.error(DOMAIN, 'LoginPage', 'Navigate to ServerConfigPage failed: %{public}s', err.message);
+                promptAction.showToast({ message: '跳转失败: ' + err.message });
+              });
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 50 })
+      .position({ x: 0, y: 0 })
+      .zIndex(999)  // 确保层级最高，不被其他组件遮挡
     }
     .width('100%')
     .height('100%')

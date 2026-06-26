@@ -2,6 +2,9 @@ import { inputMethod } from '@kit.IMEKit'
 import { Callback, getStreamAI } from '../utlis/StreamAIUtil'
 import { Header } from '../components/Header';
 
+const TAG = 'Home';
+const DOMAIN = 0x0001;
+
 @Entry
 @Component
 struct Home {
@@ -103,11 +106,21 @@ struct Home {
                     .margin({ bottom: 8 })
                   }
 
-                  Text(this.content[index] || (this.isThinking[index] ? '' : '暂无回复内容'))
-                    .fontSize(16)
-                    .width('100%')
-                    .fontColor((this.content[index] || '').length > 0 ? Color.Black : '#999')
-                    .textAlign(TextAlign.Start)
+                  // 【修改】恢复纯文本显示，移除 MarkdownWebView 组件
+                  if ((this.content[index] || '').length > 0) {
+                    Text(this.content[index])
+                      .fontSize(16)
+                      .fontColor('#333')
+                      .width('100%')
+                      .textAlign(TextAlign.Start)
+                      .lineHeight(24)
+                  } else if (!this.isThinking[index]) {
+                    Text('暂无回复内容')
+                      .fontSize(16)
+                      .fontColor('#999')
+                      .width('100%')
+                      .textAlign(TextAlign.Start)
+                  }
                 }
                 .margin({ left: 10, right: 10 })
                 .alignItems(HorizontalAlign.Start)
