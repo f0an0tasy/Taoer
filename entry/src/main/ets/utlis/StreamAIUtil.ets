@@ -170,7 +170,7 @@ export class StreamAIUtil {
 
     const systemMessage: Message = {
       role: 'system',
-      content: '请勿使用表格（包括Markdown表格、ASCII表格等），回答内容请用纯文本、列表或段落组织。'
+      content: '你是一位专业的二手商品购买顾问，擅长为用户提供选购建议、价格评估、成色判断和交易注意事项。请勿使用表格（包括Markdown表格、ASCII表格等），回答内容请用纯文本、列表或段落组织。'
     };
     let userMessage: Message = { role: 'user', content: content };
     let body: Body = {
